@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Visor Hexadecimal</title>
+    <style>
+      .hidden {
+        display: none;
+        left: 100px;
+        position: relative;
+      }
+    </style>
+</head>
+<body>
+
+<input type="file" id="fileInput" style="display: inline-block;">
+
+<button id="change" class="hidden" style="display: none;">Change!</button>
+
+<select class="hidden" style="display: none" id="region">
+  <option value="USA">USA</option>
+  <option value="EUR">EUR</option>
+</select>
+
+<p class="hidden" style="top: 20px; left:-25px" id="recognised">Recognized: <span></span></p>
+
+<pre id="hexContent"></pre>
+
+<script>
+    document.getElementById('fileInput').addEventListener('input', handleFileSelect);
+    document.getElementById('change').addEventListener('click', modifyFile);
+    let hexString = ''
+    let currentFileName = ''
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+
+        if (file) {
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                for (let i=0; i<document.getElementsByClassName("hidden").length;i++) {                  
+                    document.getElementsByClassName("hidden").item(i).style.display = "inline-block"
+                }
+                const arrayBuffer = e.target.result;
+                const byteArray = new Uint8Array(arrayBuffer);
+                hexString = byteArrayToHexString(byteArray);
+
+                //document.getElementById('hexContent').textContent = hexString;
+                recognise()
+                currentFileName = file.name;
+            };
+
+            reader.readAsArrayBuffer(file);
+        }
+    }
+
+    function byteArrayToHexString(byteArray) {
+        let hexString = '';
+        for (let i = 0; i < byteArray.length; i++) {
+            const hex = byteArray[i].toString(16).padStart(2, '0');
+            hexString += hex.toUpperCase()
+        }
+        return hexString.trim();
+    }
+
+    function modifyFile() {
+      let first4Bytes = hexString.slice(0, 8)
+      let value = document.getElementById("region").value
+      const text2Hex = {"EUR":"47414650", "USA": "47414645"}
+      console.log(text2Hex[value])
+      var replaced = hexString.replace(first4Bytes, text2Hex[value])
+      console.log(replaced)
+      downloadFile(replaced)
+    }
+
+    function recognise() {
+      let first4Bytes = hexString.slice(0, 8)
+      console.log(first4Bytes)
+      const hex2Text = {"47414650":"Animal Crossing EUR", "47414645": "Animal Crossing USA"}
+      console.log(hex2Text[first4Bytes])
+      document.getElementById("recognised").children[0].textContent = hex2Text[first4Bytes]
+      //hexString.replace()
+    }
+
+    function downloadFile(hexString) {
+        const blob = new Blob([hexStringToByteArray(hexString)], { type: 'application/octet-stream' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = currentFileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    }
+
+    function hexStringToByteArray(hexString) {
+        const byteArray = new Uint8Array(hexString.length / 2);
+        for (let i = 0; i < hexString.length; i += 2) {
+            byteArray[i / 2] = parseInt(hexString.substr(i, 2), 16);
+        }
+        return byteArray;
+    }
+</script>
+
+</body>
+</html>
